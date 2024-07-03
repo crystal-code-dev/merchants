@@ -1,86 +1,111 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ItemPickup : MonoBehaviour
-{
+public class ItemPickup : MonoBehaviour {
+    // Public variables
     public Transform holdPoint;
-    public List<GameObject> heldItems;
-    public int maxItems; 
-    void Start() {
-        heldItems = new List<GameObject>();  
-        maxItems = 3;
+    public List<GameObject> heldItems = new List<GameObject>();
+    public int maxItems = 3;
+    public float pickupRadius = 2f;
+
+    // Built-in methods
+    private void Start() {
+        Debug.Log("Max items definido para: " + maxItems);
     }
 
-    void Update() {
-        if (Input.GetKeyDown(KeyCode.Z)) {
+    private void Update() {
+        HandleInput();
+    }
+
+    private void HandleInput() {
+        if (Input.GetButtonDown("Fire1")) {
             TryPickUpItem();
         }
 
-        if (Input.GetKeyDown(KeyCode.X)) {
+        if (Input.GetButtonDown("Fire2")) {
             DropItem();
         }
     }
 
-    void TryPickUpItem() {
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position, 2f);
+    // Public methods
+    public void DropAllItems() {
+        while (heldItems.Count > 0) {
+            DropItem();
+        }
+    }
+
+    // Private custom methods
+    private void TryPickUpItem() {
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, pickupRadius);
+
         foreach (var hitCollider in hitColliders) {
-            if (hitCollider.CompareTag("PickupItem")) {
-                Item item = hitCollider.GetComponent<Item>();
-                if (item != null && !item.isPickedUp) {
-                    PickUpItem(item);
-                    return;
-                }
+            bool isPickupItem = hitCollider.CompareTag("PickupItem");
+            if (!isPickupItem) {
+                continue;
+            }
+
+            Item item = hitCollider.GetComponent<Item>();
+            if (item && !item.isPickedUp) {
+                PickUpItem(item);
+                return;
             }
         }
     }
 
-    void PickUpItem(Item item) {
-        if (heldItems.Count < maxItems) {         
-            item.transform.SetParent(holdPoint);
-            float currentStackHeight = 0f;
-            foreach (var heldItem in heldItems) {
-               Item heldItemItem = heldItem.GetComponent<Item>();
-              float itemHeight = heldItemItem.GetDimensions().y;
-                currentStackHeight += itemHeight;
-            } 
-             
-            item.transform.localPosition = new Vector3(0, currentStackHeight, 0);
-            
-            item.transform.localRotation = Quaternion.identity;
-            item.isPickedUp = true;
-            Rigidbody rb = item.GetComponent<Rigidbody>();
-            if (rb != null) {
-                rb.isKinematic = true;
-            }
+    private void PickUpItem(Item item) {
+        if (heldItems.Count < maxItems) {
+            AttachItemToHoldPoint(item);
             heldItems.Add(item.gameObject);
-          
-            Debug.Log("Item pego: " + item.name);
-        }
-    }
-    void DropItem() {
-        if (heldItems.Count > 0) {
-            GameObject itemObject = heldItems[heldItems.Count - 1];
-            Item item = itemObject.GetComponent<Item>();
-            item.transform.SetParent(null);
-            item.isPickedUp = false;
-            Rigidbody rb = item.GetComponent<Rigidbody>();
-            if (rb != null) {
-                rb.isKinematic = false;
-            }
-            heldItems.RemoveAt(heldItems.Count - 1);
-            Debug.Log("Item solto: " + item.name);
         }
     }
 
-    public void DropAllItem() {
-      for (var i = 0; i < heldItems.Count; i++) {
-        DropItem();
-      }   
+    private void AttachItemToHoldPoint(Item item) {
+        item.transform.SetParent(holdPoint);
+        item.transform.SetLocalPositionAndRotation(CalculateItemPosition(), Quaternion.identity);
+        item.isPickedUp = true;
+
+        SetItemKinematic(item, true);
+    }
+
+    private Vector3 CalculateItemPosition() {
+        float currentStackHeight = 0f;
+
+        foreach (var heldItem in heldItems) {
+            Item item = heldItem.GetComponent<Item>();
+            currentStackHeight += item.GetDimensions().y;
+        }
+
+        return new Vector3(0, currentStackHeight, 0);
+    }
+
+    private void SetItemKinematic(Item item, bool isKinematic) {
+        Rigidbody rigidbody = item.GetComponent<Rigidbody>();
+        
+        if (rigidbody) {
+            rigidbody.isKinematic = isKinematic;
+        }
+    }
+
+    private void DropItem() {
+        if (heldItems.Count > 0) {
+            GameObject itemObject = heldItems[^1];
+            Item item = itemObject.GetComponent<Item>();
+
+            DetachItem(item);
+            
+            heldItems.RemoveAt(heldItems.Count - 1);
+        }
+    }
+
+    private void DetachItem(Item item) {
+        item.transform.SetParent(null);
+        item.isPickedUp = false;
+
+        SetItemKinematic(item, false);
     }
 
     private void OnDrawGizmosSelected() {
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, 2f);
+        Gizmos.DrawWireSphere(transform.position, pickupRadius);
     }
 }

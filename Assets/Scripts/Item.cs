@@ -1,21 +1,25 @@
 using UnityEngine;
 
 public class Item : MonoBehaviour {
-    public bool isPickedUp;
-    private Vector3 originalPosition;
-    private Collider itemCollider;   
+    // Public variables
+    public bool isPickedUp = false;
 
-    void Start() {
-        isPickedUp = false;
-        originalPosition = transform.position;
-        itemCollider = GetComponent<Collider>();
+    // Private variables
+    private Collider itemCollider;
+    private Vector3 defaultSize = Vector3.one;
+
+    // Public methods
+    public Vector3 GetDimensions() {
+        return itemCollider ? itemCollider.bounds.size : defaultSize;
     }
 
-    public Vector3 GetDimensions() {
-        if (!itemCollider) {
-            return itemCollider.bounds.size;
-        }
+    // Built-in methods
+    private void Start() {
+        InitializeItem();
+    }
 
-        return Vector3.one;
+    // Private custom methods
+    private void InitializeItem() {
+        itemCollider = GetComponent<Collider>();
     }
 }
