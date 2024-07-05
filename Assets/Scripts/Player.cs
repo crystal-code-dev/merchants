@@ -156,7 +156,11 @@ public class Player : MonoBehaviour {
             {
                 Resource resource = nearestCollider.GetComponent<Resource>();
                 if (resource) {
-                    StartCoroutine(PerformInteractionWithDelay(() => resource.GenerateResourceItem()));
+                    Item heldItem = null;
+                    if (itemPickup.heldItems.Count > 0) {
+                        heldItem = itemPickup.heldItems[0].GetComponent<Item>();
+                    }
+                    StartCoroutine(PerformInteractionWithDelay(() => resource.GenerateResourceItem(heldItem)));
                 }
             }
         }

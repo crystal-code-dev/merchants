@@ -8,6 +8,7 @@ public class Resource : MonoBehaviour
     // Public variables
     public List<GameObject> resourceItems;
     public List<float> resourceRates;
+    public List<Tool.ToolType> toolTypes;
     public int resourceCount = 5;
 
     // Private variables
@@ -33,11 +34,17 @@ public class Resource : MonoBehaviour
         itemCollider = GetComponent<Collider>();
     }
 
-    public IEnumerator GenerateResourceItem() {
-        yield return GenerateResourceItemCoroutine();
+    public IEnumerator GenerateResourceItem(Item heldItem) {
+        yield return GenerateResourceItemCoroutine(heldItem);
     }
 
-    private IEnumerator GenerateResourceItemCoroutine() {
+    private IEnumerator GenerateResourceItemCoroutine(Item heldItem) {
+        if (toolTypes.Count > 0) {
+            if (!heldItem) yield break;
+            Tool tool = heldItem as Tool;
+            if (!tool || !toolTypes.Contains(tool.toolType)) yield break;
+        }
+
         if (resourceCount <= 0) yield break;
         resourceCount--;
 

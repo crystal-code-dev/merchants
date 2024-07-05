@@ -9,6 +9,7 @@ TagManager:
   - Equipable
   - Resource
   - Interactable
+  - Tool
   layers:
   - Default
   - TransparentFX

@@ -24,6 +24,10 @@ public class ItemPickup : MonoBehaviour {
     }
 
     public void PickUpItem(Item item) {
+        Item heldItem = null;
+        if (heldItems.Count > 0) heldItem = heldItems[0].GetComponent<Item>();
+        if (heldItem as Tool) return;
+        if (item as Tool) DropAllItems();
         if (heldItems.Count < maxItems) {
             AttachItemToHoldPoint(item);
             heldItems.Add(item.gameObject);
