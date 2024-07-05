@@ -1,17 +1,22 @@
+using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Player : MonoBehaviour {
     // Public variables
-    public float baseSpeed = 3f, baseDashSpeed = 10f, baseSprintSpeed = 6f, baseGravityScale = 1f, baseDashDuration = 0.5f, baseJumpForce = 6f;
+    public float baseSpeed = 3f, baseDashSpeed = 10f, baseSprintSpeed = 6f, baseGravityScale = 1f, baseDashDuration = 0.5f, baseJumpForce = 6f, interactRadius = 2f;
+    public bool cannotMove = false;
+
     public CharacterController controller;
     public Transform groundCheck;
     public LayerMask whatIsGround;
 
     // Private variables
-    private float smoothRotationVelocity, gravity, normalSpeed, heldItemCount;
+    private float smoothRotationVelocity, gravity, normalSpeed, heldItemCount, pressTime;
     private bool isDashing, isGrounded;
     private Vector3 moveDirection, velocity;
+    private ItemPickup itemPickup;
     private const float groundCheckRadius = 0.1f, obstacleCheckDistance = 1.5f;
 
     // Built-in methods
@@ -19,10 +24,12 @@ public class Player : MonoBehaviour {
         controller = GetComponent<CharacterController>();
         gravity = Physics.gravity.y;
         normalSpeed = baseSpeed;
+        itemPickup = GetComponent<ItemPickup>();
+        pressTime = 0f;
     }
 
-    private void Update() {
-        heldItemCount = GetComponent<ItemPickup>().heldItems.Count;
+    private void Update() {        
+        heldItemCount = (int)itemPickup?.heldItems.Count;
         HandleInput();
         HandleMovement();
         ApplyGravity();
@@ -34,6 +41,7 @@ public class Player : MonoBehaviour {
 
     // Private custom methods
     private void HandleMovement() {
+        if (cannotMove) return;
         Vector3 direction = GetInputDirection();
 
         if (direction.magnitude >= 0.1f) {
@@ -80,6 +88,94 @@ public class Player : MonoBehaviour {
         if (Input.GetButtonDown("Jump") && !isDashing && isGrounded) {
             Jump();
         }
+
+        if (Input.GetKeyDown(KeyCode.Z)) {
+            InteractPositive();
+        }
+
+        if (Input.GetKeyDown(KeyCode.X)) {
+            pressTime = Time.time;
+        }
+
+          if (Input.GetKeyUp(KeyCode.X)) {
+            InteractNegative();
+        }
+    }
+
+    private Collider? GetNearestInteractableObject() {
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, interactRadius);
+        Collider nearestCollider = null;
+        float bestScore = float.MaxValue;
+        Vector3 playerForward = transform.forward; // Direção para a qual o player está olhando
+
+        foreach (var hitCollider in hitColliders)
+        {
+            float distance = Vector3.Distance(transform.position, hitCollider.transform.position);
+            Vector3 directionToCollider = (hitCollider.transform.position - transform.position).normalized;
+            float angle = Vector3.Angle(playerForward, directionToCollider);
+
+            float score = distance * 0.1f + angle * 0.3f;
+
+            if (score < bestScore)
+            {
+                Item item = hitCollider.GetComponent<Item>();
+                if (item && !item.isPickedUp)
+                {
+                    nearestCollider = hitCollider;
+                    bestScore = score;
+                }
+                else
+                {
+                    Resource resource = hitCollider.GetComponent<Resource>();
+                    if (resource)
+                    {
+                        nearestCollider = hitCollider;
+                        bestScore = score;
+                    }
+                }
+            }
+        }
+        return nearestCollider;
+    }
+
+    private void InteractPositive() {
+       
+        Collider nearestCollider = GetNearestInteractableObject();
+        // Interact with the nearest collider
+        if (nearestCollider)
+        {
+            if (nearestCollider.CompareTag("PickupItem"))
+            {
+                Item item = nearestCollider.GetComponent<Item>();
+                if (item && !item.isPickedUp)
+                {
+                    itemPickup.PickUpItem(item);
+                }
+            }
+            else if (nearestCollider.CompareTag("Resource"))
+            {
+                Resource resource = nearestCollider.GetComponent<Resource>();
+                if (resource) {
+                    StartCoroutine(PerformInteractionWithDelay(() => resource.GenerateResourceItem()));
+                }
+            }
+        }
+    }
+
+    private IEnumerator PerformInteractionWithDelay(Func<IEnumerator> action) {
+        cannotMove = true;
+        yield return StartCoroutine(action());
+        cannotMove = false;
+    }
+
+    private void InteractNegative() {
+        if (Time.time - pressTime > 1f) {
+            Debug.Log("throw");
+            itemPickup.ThrowItem();
+        } else {
+            itemPickup.DropItem();
+        }   
+
     }
 
     private void ApplyGravity() {

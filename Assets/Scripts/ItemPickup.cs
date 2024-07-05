@@ -6,7 +6,6 @@ public class ItemPickup : MonoBehaviour {
     public Transform holdPoint;
     public List<GameObject> heldItems = new List<GameObject>();
     public int maxItems = 3;
-    public float pickupRadius = 2f;
 
     // Built-in methods
     private void Start() {
@@ -14,17 +13,7 @@ public class ItemPickup : MonoBehaviour {
     }
 
     private void Update() {
-        HandleInput();
-    }
-
-    private void HandleInput() {
-        if (Input.GetButtonDown("Fire1")) {
-            TryPickUpItem();
-        }
-
-        if (Input.GetButtonDown("Fire2")) {
-            DropItem();
-        }
+  
     }
 
     // Public methods
@@ -34,25 +23,7 @@ public class ItemPickup : MonoBehaviour {
         }
     }
 
-    // Private custom methods
-    private void TryPickUpItem() {
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position, pickupRadius);
-
-        foreach (var hitCollider in hitColliders) {
-            bool isPickupItem = hitCollider.CompareTag("PickupItem");
-            if (!isPickupItem) {
-                continue;
-            }
-
-            Item item = hitCollider.GetComponent<Item>();
-            if (item && !item.isPickedUp) {
-                PickUpItem(item);
-                return;
-            }
-        }
-    }
-
-    private void PickUpItem(Item item) {
+    public void PickUpItem(Item item) {
         if (heldItems.Count < maxItems) {
             AttachItemToHoldPoint(item);
             heldItems.Add(item.gameObject);
@@ -86,7 +57,7 @@ public class ItemPickup : MonoBehaviour {
         }
     }
 
-    private void DropItem() {
+    public void DropItem() {
         if (heldItems.Count > 0) {
             GameObject itemObject = heldItems[^1];
             Item item = itemObject.GetComponent<Item>();
@@ -97,6 +68,32 @@ public class ItemPickup : MonoBehaviour {
         }
     }
 
+    public void ThrowItem() {
+        if (heldItems.Count > 0)
+        {
+            GameObject itemObject = heldItems[^1];
+            Item item = itemObject.GetComponent<Item>();
+
+            // Detach the item from the player (if needed)
+            DetachItem(item);
+            heldItems.RemoveAt(heldItems.Count - 1);
+
+            // Add Rigidbody component if not already present
+            Rigidbody rb = itemObject.GetComponent<Rigidbody>();
+            if (!rb)
+            {
+                rb = itemObject.AddComponent<Rigidbody>();
+            }
+
+            // Calculate throw direction based on player's forward direction
+            Vector3 throwDirection = transform.forward;
+
+            // Apply throw force
+            rb.AddForce(throwDirection * 10f, ForceMode.Impulse);
+        }
+    }
+
+
     private void DetachItem(Item item) {
         item.transform.SetParent(null);
         item.isPickedUp = false;
@@ -104,8 +101,5 @@ public class ItemPickup : MonoBehaviour {
         SetItemKinematic(item, false);
     }
 
-    private void OnDrawGizmosSelected() {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, pickupRadius);
-    }
+
 }

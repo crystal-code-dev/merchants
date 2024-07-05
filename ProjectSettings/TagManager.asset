@@ -6,6 +6,9 @@ TagManager:
   tags:
   - PickupItem
   - Obstacle
+  - Equipable
+  - Resource
+  - Interactable
   layers:
   - Default
   - TransparentFX
