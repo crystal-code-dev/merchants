@@ -119,24 +119,51 @@ public class Player : MonoBehaviour {
             if (score < bestScore)
             {
                 Item item = hitCollider.GetComponent<Item>();
-                if (item && !item.isPickedUp)
+                if (item && !item.isPickedUp && !item.isStored)
                 {
                     nearestCollider = hitCollider;
                     bestScore = score;
+                    break;
                 }
-                else
+                Resource resource = hitCollider.GetComponent<Resource>();
+                if (resource)
                 {
-                    Resource resource = hitCollider.GetComponent<Resource>();
-                    if (resource)
-                    {
-                        nearestCollider = hitCollider;
-                        bestScore = score;
-                    }
+                    nearestCollider = hitCollider;
+                    bestScore = score;
+                    break;
+                }        
+            }
+        }
+        return nearestCollider;
+    }
+
+    private Collider? GetNearestNegativeInteractableObject() {
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, interactRadius);
+        Collider nearestCollider = null;
+        float bestScore = float.MaxValue;
+        Vector3 playerForward = transform.forward; // Direção para a qual o player está olhando
+
+        foreach (var hitCollider in hitColliders)
+        {
+            float distance = Vector3.Distance(transform.position, hitCollider.transform.position);
+            Vector3 directionToCollider = (hitCollider.transform.position - transform.position).normalized;
+            float angle = Vector3.Angle(playerForward, directionToCollider);
+
+            float score = distance * 0.1f + angle * 0.3f;
+
+            if (score < bestScore)
+            {
+                Container container = hitCollider.GetComponent<Container>();
+                if (container)
+                {
+                    nearestCollider = hitCollider;
+                    bestScore = score;                  
                 }
             }
         }
         return nearestCollider;
     }
+
 
     private void InteractPositive() {
        
@@ -173,13 +200,26 @@ public class Player : MonoBehaviour {
     }
 
     private void InteractNegative() {
+        Item heldItem = null;
+        if (itemPickup.heldItems.Count > 0) {
+            heldItem = itemPickup.heldItems[0].GetComponent<Item>();
+        }
+        Collider nearestCollider = GetNearestNegativeInteractableObject();
         if (Time.time - pressTime > 1f) {
-            Debug.Log("throw");
             itemPickup.ThrowItem();
-        } else {
-            itemPickup.DropItem();
-        }   
+            return;
+        } 
 
+        if (!nearestCollider) {
+            
+            return;
+        }
+        Container container = nearestCollider.GetComponent<Container>();
+        if (container && heldItem) {
+            Debug.Log("store");
+            StartCoroutine(PerformInteractionWithDelay(() => container.StoreItem(heldItem)));
+            itemPickup.heldItems.RemoveAt(itemPickup.heldItems.Count - 1);
+        }
     }
 
     private void ApplyGravity() {

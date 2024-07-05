@@ -3,6 +3,7 @@ using UnityEngine;
 public class Item : MonoBehaviour {
     // Public variables
     public bool isPickedUp = false;
+    public bool isStored = false;
 
     // Private variables
     private Collider itemCollider;
