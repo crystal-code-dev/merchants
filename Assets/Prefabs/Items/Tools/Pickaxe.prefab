@@ -122,6 +122,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   isPickedUp: 0
+  isStored: 0
+  name: 
   toolType: 0
 --- !u!64 &1654000361906176667
 MeshCollider:

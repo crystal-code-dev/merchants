@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class Item : MonoBehaviour {
     // Public variables
-    public bool isPickedUp = false;
-    public bool isStored = false;
+    public bool isPickedUp = false, isStored = false;
+    public string name;
 
     // Private variables
     private Collider itemCollider;
